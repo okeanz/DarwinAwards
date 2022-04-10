@@ -1,0 +1,6 @@
+bin
+obj
+/packages
+DarwinAwards.sln.DotSettings.user
+.idea
+.vs
