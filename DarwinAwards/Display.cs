@@ -34,12 +34,12 @@ public static class Display
 			lineTransform.pivot = middleLeft;
 			lineTransform.anchorMin = middleLeft;
 			lineTransform.anchorMax = middleLeft;
-			lineTransform.sizeDelta = new Vector2(300, 50);
+			lineTransform.sizeDelta = new Vector2(300 * DarwinAwards.fontSize.Value / 14f, 200);
 			Text linePrefabText = linePrefab.AddComponent<Text>();
-			linePrefabText.font = Resources.FindObjectsOfTypeAll<Font>().FirstOrDefault(x => x.name == "AveriaSerifLibre-Bold");
-			linePrefabText.fontSize = 14;
+			linePrefabText.font = Resources.FindObjectsOfTypeAll<Font>().FirstOrDefault(x => x.name == DarwinAwards.font.Value.ToString().Replace("_", "-"));
+			linePrefabText.fontSize = DarwinAwards.fontSize.Value;
 			linePrefabText.alignment = TextAnchor.MiddleLeft;
-			linePrefabText.lineSpacing = 0.7f;
+			linePrefabText.lineSpacing = 0.8f;
 			Outline outline = linePrefab.AddComponent<Outline>();
 			outline.effectColor = Color.black;
 			outline.effectDistance = new Vector2(1, -1);
@@ -48,8 +48,8 @@ public static class Display
 			deathIcon.transform.SetParent(linePrefab.transform);
 			deathIcon.AddComponent<Image>();
 			RectTransform deathRect = deathIcon.GetComponent<RectTransform>();
-			deathRect.sizeDelta = new Vector2(16, 16);
-			deathRect.anchoredPosition = new Vector2(-20, 0);
+			deathRect.sizeDelta = new Vector2(DarwinAwards.fontSize.Value + 2, DarwinAwards.fontSize.Value + 2);
+			deathRect.anchoredPosition = new Vector2(-(DarwinAwards.fontSize.Value + 2) / 16f * 20, 0);
 			deathRect.pivot = middleLeft;
 			deathRect.anchorMin = middleLeft;
 			deathRect.anchorMax = middleLeft;
@@ -80,7 +80,7 @@ public static class Display
 	{
 		GameObject textLine = Object.Instantiate(linePrefab, deaths!.transform);
 		textLine.SetActive(true);
-		((RectTransform)textLine.transform).anchoredPosition = new Vector2(0, 25 * (deaths.transform.childCount - 1));
+		((RectTransform)textLine.transform).anchoredPosition = new Vector2(0, DarwinAwards.fontSize.Value / 14f * 25 * (deaths.transform.childCount - 1));
 		textLine.GetComponent<Text>().text = text.text;
 		textLine.AddComponent<SaveTime>();
 		if (DarwinAwards.timerForDeaths.Value > 0)
@@ -94,7 +94,7 @@ public static class Display
 		{
 			for (int i = 1; i < deaths.transform.childCount; ++i)
 			{
-				((RectTransform)deaths.transform.GetChild(i).transform).anchoredPosition = new Vector2(0, 25 * (i - 1));
+				((RectTransform)deaths.transform.GetChild(i).transform).anchoredPosition = new Vector2(0,  DarwinAwards.fontSize.Value / 14f * 25 * (i - 1));
 			}
 
 			Object.Destroy(deaths.transform.GetChild(0).gameObject);
@@ -132,5 +132,35 @@ public static class Display
 			deaths.transform.localPosition = DarwinAwards.deathLogAnchor.Value;
 			deaths.transform.GetComponent<DragNDrop>().SetPosition(deaths.transform.position);
 		}
+	}
+
+	public static void UpdateFont(object sender, EventArgs e)
+	{
+		if (deaths is null)
+		{
+			return;
+		}
+
+		Text linePrefabText = linePrefab.GetComponent<Text>();
+		linePrefabText.font = Resources.FindObjectsOfTypeAll<Font>().FirstOrDefault(x => x.name == DarwinAwards.font.Value.ToString().Replace("_", "-"));
+		linePrefabText.fontSize = DarwinAwards.fontSize.Value;
+		linePrefabText.rectTransform.sizeDelta = new Vector2(300 * DarwinAwards.fontSize.Value / 14f, 200);
+		RectTransform deathRect = (RectTransform)linePrefab.transform.Find("Death Icon");
+		deathRect.sizeDelta = new Vector2(DarwinAwards.fontSize.Value + 2, DarwinAwards.fontSize.Value + 2);
+		deathRect.anchoredPosition = new Vector2(-(DarwinAwards.fontSize.Value + 2) / 16f * 20, 0);
+
+		for (int i = 0; i < deaths.transform.childCount; ++i)
+		{
+			Text deathLine = deaths.transform.GetChild(i).GetComponent<Text>();
+			deathLine.font = linePrefabText.font;
+			deathLine.fontSize = linePrefabText.fontSize;
+			deathLine.rectTransform.sizeDelta = new Vector2(300 * DarwinAwards.fontSize.Value / 14f, 200);
+			deathRect = (RectTransform)deathLine.transform.Find("Death Icon");
+			deathRect.sizeDelta = new Vector2(DarwinAwards.fontSize.Value + 2, DarwinAwards.fontSize.Value + 2);
+			deathRect.anchoredPosition = new Vector2(-(DarwinAwards.fontSize.Value + 2) / 16f * 20, 0);
+			deathLine.rectTransform.anchoredPosition = new Vector2(0,  DarwinAwards.fontSize.Value / 14f * 25 * i);
+		}
+		
+		deaths.transform.GetComponent<DragNDrop>().SetPosition(deaths.transform.position);
 	}
 }

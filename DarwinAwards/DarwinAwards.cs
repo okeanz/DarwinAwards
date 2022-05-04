@@ -17,7 +17,7 @@ namespace DarwinAwards;
 public class DarwinAwards : BaseUnityPlugin
 {
 	private const string ModName = "Darwin Awards";
-	private const string ModVersion = "1.0.0";
+	private const string ModVersion = "1.0.1";
 	private const string ModGUID = "org.bepinex.plugins.darwinawards";
 
 	private static string configDir => Paths.ConfigPath;
@@ -26,6 +26,8 @@ public class DarwinAwards : BaseUnityPlugin
 	public static ConfigEntry<Vector2> deathLogAnchor = null!;
 	public static ConfigEntry<int> numberOfDeaths = null!;
 	public static ConfigEntry<uint> timerForDeaths = null!;
+	public static ConfigEntry<int> fontSize = null!;
+	public static ConfigEntry<Font> font = null!;
 
 	private static readonly ConfigSync configSync = new(ModName) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
 
@@ -50,15 +52,51 @@ public class DarwinAwards : BaseUnityPlugin
 		Off = 0
 	}
 
+	public enum Font
+	{
+		Arial,
+		AveriaSansLibre_Bold,
+		AveriaSansLibre_BoldItalic,
+		AveriaSansLibre_Italic,
+		AveriaSansLibre_Light,
+		AveriaSansLibre_LightItalic,
+		AveriaSansLibre_Regular,
+		AveriaSerifLibre_Bold,
+		AveriaSerifLibre_BoldItalic,
+		AveriaSerifLibre_Italic,
+		AveriaSerifLibre_Light,
+		AveriaSerifLibre_Regular,
+		CONSOLA,
+		Norse,
+		Norsebold,
+		OpenSans_Bold,
+		OpenSans_BoldItalic,
+		OpenSans_ExtraBold,
+		OpenSans_ExtraBoldItalic,
+		OpenSans_Italic,
+		OpenSans_Light,
+		OpenSans_LightItalic,
+		OpenSans_Regular,
+		OpenSans_SemiBold,
+		OpenSans_SemiBoldItalic,
+		prstart,
+		prstartk,
+		rune,
+	}
+
 	public void Awake()
 	{
 		serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, only server admins can change the configuration."));
 		configSync.AddLockingConfigEntry(serverConfigLocked);
 		numberOfDeaths = config("1 - General", "Number of deaths", 3, new ConfigDescription("Number of deaths to display at the same time. Set this to 0, to disable the death log.", new AcceptableValueRange<int>(0, 25)), false);
-		timerForDeaths = config("1 - General", "Timer for deaths", 10u, new ConfigDescription("Time in seconds the deaths are displayed. 0 means no time limit."), false);
+		timerForDeaths = config("1 - General", "Timer for deaths", 30u, new ConfigDescription("Time in seconds the deaths are displayed. 0 means no time limit."), false);
 		timerForDeaths.SettingChanged += Display.CheckDeathTimes;
 		deathLogAnchor = config("1 - General", "Position of the death log", new Vector2(700, 220), new ConfigDescription("Position of the death log."), false);
 		deathLogAnchor.SettingChanged += Display.AnchorDeathLog;
+		font = config("1 - General", "Font of the death log", Font.AveriaSansLibre_Bold, new ConfigDescription("Name of the font that should be used for your death log. Has to be installed on your computer to work."), false);
+		font.SettingChanged += Display.UpdateFont;
+		fontSize = config("1 - General", "Font size of the death log", 14, new ConfigDescription("Font size to be used for your death log.", new AcceptableValueRange<int>(1, 32)), false);
+		fontSize.SettingChanged += Display.UpdateFont;
 
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
@@ -78,7 +116,7 @@ public class DarwinAwards : BaseUnityPlugin
 
 		Display.FillIconMap();
 	}
-	
+
 	[HarmonyPatch(typeof(Game), nameof(Game.Start))]
 	private class AddRPCs
 	{

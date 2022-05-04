@@ -6,7 +6,7 @@ public class SaveTime : MonoBehaviour
 {
 	public float timeCreated;
 
-	public SaveTime()
+	public void Awake()
 	{
 		timeCreated = Time.fixedTime;
 	}
