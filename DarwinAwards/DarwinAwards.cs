@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using JetBrains.Annotations;
 using ServerSync;
 using UnityEngine;
 using YamlDotNet.Serialization;
@@ -17,7 +19,7 @@ namespace DarwinAwards;
 public class DarwinAwards : BaseUnityPlugin
 {
 	private const string ModName = "Darwin Awards";
-	private const string ModVersion = "1.0.1";
+	private const string ModVersion = "1.0.2";
 	private const string ModGUID = "org.bepinex.plugins.darwinawards";
 
 	private static string configDir => Paths.ConfigPath;
@@ -28,6 +30,8 @@ public class DarwinAwards : BaseUnityPlugin
 	public static ConfigEntry<uint> timerForDeaths = null!;
 	public static ConfigEntry<int> fontSize = null!;
 	public static ConfigEntry<Font> font = null!;
+	private static ConfigEntry<string> webhookURL = null!;
+	private static ConfigEntry<string> webhookUsername = null!;
 
 	private static readonly ConfigSync configSync = new(ModName) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
 
@@ -84,6 +88,12 @@ public class DarwinAwards : BaseUnityPlugin
 		rune,
 	}
 
+	private class ConfigurationManagerAttributes
+	{
+		[UsedImplicitly]
+		public bool? Browsable = false;
+	}
+
 	public void Awake()
 	{
 		serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, only server admins can change the configuration."));
@@ -97,6 +107,8 @@ public class DarwinAwards : BaseUnityPlugin
 		font.SettingChanged += Display.UpdateFont;
 		fontSize = config("1 - General", "Font size of the death log", 14, new ConfigDescription("Font size to be used for your death log.", new AcceptableValueRange<int>(1, 32)), false);
 		fontSize.SettingChanged += Display.UpdateFont;
+		webhookURL = config("2 - Webhook", "Discord Webhook URL", "", new ConfigDescription("Discord API endpoint to announce deaths.", null, new ConfigurationManagerAttributes()), false);
+		webhookUsername = config("2 - Webhook", "Username to use for Discord", "Darwin", new ConfigDescription("Username to be used for death related posts to Discord.", null, new ConfigurationManagerAttributes()), false);
 
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
@@ -129,6 +141,10 @@ public class DarwinAwards : BaseUnityPlugin
 	private static void onReceivedDeath(long senderId, string category, string text)
 	{
 		Display.AddText(new DeathText { category = category, text = text });
+		if (ZNet.instance.IsServer() && webhookURL.Value != "")
+		{
+			PostToDiscord(text);
+		}
 	}
 
 	private static void BroadcastDeath(DeathText text)
@@ -360,5 +376,26 @@ public class DarwinAwards : BaseUnityPlugin
 		DeathText text = possibleTexts.Count == 0 ? new DeathText { category = "general", text = "R.I.P. {player}" } : possibleTexts[Random.Range(0, possibleTexts.Count)];
 		text.text = text.text.Replace("{player}", Player.m_localPlayer.GetHoverName());
 		return text;
+	}
+
+	private static void PostToDiscord(string content)
+	{
+		if (content == "" || webhookURL.Value == "")
+		{
+			return;
+		}
+
+		WebRequest discordAPI = WebRequest.Create(webhookURL.Value);
+		discordAPI.Method = "POST";
+		discordAPI.ContentType = "application/json";
+
+		discordAPI.GetRequestStreamAsync().ContinueWith(t =>
+		{
+			static string escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+			using StreamWriter writer = new(t.Result);
+			string json = @"{""content"":""" + escape(content) + @"""" + (webhookUsername.Value == "" ? "" : @", ""username"":""" + escape(webhookUsername.Value) + @"""") + "}";
+			writer.WriteAsync(json).ContinueWith(_ => discordAPI.GetResponseAsync());
+		});
 	}
 }
