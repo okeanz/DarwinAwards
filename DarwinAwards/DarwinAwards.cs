@@ -19,7 +19,7 @@ namespace DarwinAwards;
 public class DarwinAwards : BaseUnityPlugin
 {
 	private const string ModName = "Darwin Awards";
-	private const string ModVersion = "1.0.2";
+	private const string ModVersion = "1.0.3";
 	private const string ModGUID = "org.bepinex.plugins.darwinawards";
 
 	private static string configDir => Paths.ConfigPath;
@@ -85,7 +85,7 @@ public class DarwinAwards : BaseUnityPlugin
 		OpenSans_SemiBoldItalic,
 		prstart,
 		prstartk,
-		rune,
+		rune
 	}
 
 	private class ConfigurationManagerAttributes

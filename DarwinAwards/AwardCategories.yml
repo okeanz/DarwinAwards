@@ -48,7 +48,7 @@ death by physical:
     
 death by gravity:
   - "{player} discovered gravity. Huzzah!"
-  - "{player} forgot to break before landing."
+  - "{player} forgot to brake before landing."
     
 death by drowning:
   - "{player} is no longer thirsty."
