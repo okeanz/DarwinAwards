@@ -16,10 +16,11 @@ using Random = UnityEngine.Random;
 namespace DarwinAwards;
 
 [BepInPlugin(ModGUID, ModName, ModVersion)]
+[BepInIncompatibility("org.bepinex.plugins.valheim_plus")]
 public class DarwinAwards : BaseUnityPlugin
 {
 	private const string ModName = "Darwin Awards";
-	private const string ModVersion = "1.0.4";
+	private const string ModVersion = "1.0.5";
 	private const string ModGUID = "org.bepinex.plugins.darwinawards";
 
 	private static string configDir => Paths.ConfigPath;
@@ -178,7 +179,7 @@ public class DarwinAwards : BaseUnityPlugin
 		{
 			if (__instance == Player.m_localPlayer && __instance.GetHealth() > 0 && health <= 0)
 			{
-				if (__instance.IsSwiming())
+				if (__instance.IsSwimming())
 				{
 					BroadcastDeath(getRandomText("death by drowning"));
 					return;
