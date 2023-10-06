@@ -94,7 +94,7 @@ public static class Display
 		{
 			for (int i = 1; i < deaths.transform.childCount; ++i)
 			{
-				((RectTransform)deaths.transform.GetChild(i).transform).anchoredPosition = new Vector2(0,  DarwinAwards.fontSize.Value / 14f * 25 * (i - 1));
+				((RectTransform)deaths.transform.GetChild(i).transform).anchoredPosition = new Vector2(0, DarwinAwards.fontSize.Value / 14f * 25 * (i - 1));
 			}
 
 			Object.Destroy(deaths.transform.GetChild(0).gameObject);
@@ -158,9 +158,9 @@ public static class Display
 			deathRect = (RectTransform)deathLine.transform.Find("Death Icon");
 			deathRect.sizeDelta = new Vector2(DarwinAwards.fontSize.Value + 2, DarwinAwards.fontSize.Value + 2);
 			deathRect.anchoredPosition = new Vector2(-(DarwinAwards.fontSize.Value + 2) / 16f * 20, 0);
-			deathLine.rectTransform.anchoredPosition = new Vector2(0,  DarwinAwards.fontSize.Value / 14f * 25 * i);
+			deathLine.rectTransform.anchoredPosition = new Vector2(0, DarwinAwards.fontSize.Value / 14f * 25 * i);
 		}
-		
+
 		deaths.transform.GetComponent<DragNDrop>().SetPosition(deaths.transform.position);
 	}
 }
