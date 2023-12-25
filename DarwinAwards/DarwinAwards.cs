@@ -6,6 +6,7 @@ using System.Net;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 using JetBrains.Annotations;
 using ServerSync;
@@ -33,6 +34,9 @@ public class DarwinAwards : BaseUnityPlugin
 	public static ConfigEntry<Font> font = null!;
 	private static ConfigEntry<string> webhookURL = null!;
 	private static ConfigEntry<string> webhookUsername = null!;
+	
+	public static readonly ManualLogSource MLLogger =
+		BepInEx.Logging.Logger.CreateLogSource(ModName);
 
 	private static readonly ConfigSync configSync = new(ModName) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
 
@@ -108,8 +112,8 @@ public class DarwinAwards : BaseUnityPlugin
 		font.SettingChanged += Display.UpdateFont;
 		fontSize = config("1 - General", "Font size of the death log", 14, new ConfigDescription("Font size to be used for your death log.", new AcceptableValueRange<int>(1, 32)), false);
 		fontSize.SettingChanged += Display.UpdateFont;
-		webhookURL = config("2 - Webhook", "Discord Webhook URL", "", new ConfigDescription("Discord API endpoint to announce deaths.", null, new ConfigurationManagerAttributes()), false);
-		webhookUsername = config("2 - Webhook", "Username to use for Discord", "Darwin", new ConfigDescription("Username to be used for death related posts to Discord.", null, new ConfigurationManagerAttributes()), false);
+		webhookURL = config("2 - Webhook", "Discord Webhook URL", "", new ConfigDescription("Discord API endpoint to announce deaths.", null, new ConfigurationManagerAttributes()));
+		webhookUsername = config("2 - Webhook", "Username to use for Discord", "Darwin", new ConfigDescription("Username to be used for death related posts to Discord.", null, new ConfigurationManagerAttributes()));
 
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
@@ -128,6 +132,8 @@ public class DarwinAwards : BaseUnityPlugin
 		ReadYamlFile();
 
 		Display.FillIconMap();
+		
+		MLLogger.LogInfo("Loading complete");
 	}
 
 	[HarmonyPatch(typeof(Game), nameof(Game.Start))]
@@ -150,12 +156,29 @@ public class DarwinAwards : BaseUnityPlugin
 
 	private static void BroadcastDeath(DeathText text)
 	{
+		if (webhookURL.Value != "")
+		{
+			PostToDiscord(text.text);
+		}
 		ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "DarwinAwards IDied", text.category, text.text);
 	}
 
 	private static void ReadYamlFile()
 	{
-		deathTextDict = new DeserializerBuilder().IgnoreFields().Build().Deserialize<Dictionary<string, List<string>>?>(deathTexts.Value) ?? new Dictionary<string, List<string>>();
+		try
+		{
+			deathTextDict =
+				new DeserializerBuilder().IgnoreFields().Build()
+					.Deserialize<Dictionary<string, List<string>>?>(deathTexts.Value) ??
+				new Dictionary<string, List<string>>();
+			MLLogger.LogInfo("ReadYamlFile complete");
+		}
+		catch (Exception e)
+		{
+			MLLogger.LogError("ReadYamlFile error");
+			MLLogger.LogError(e.Message);
+			MLLogger.LogError(e.StackTrace);
+		}
 	}
 
 	private static void deathTextsFileEvent(object s, EventArgs e) => deathTexts.AssignLocalValue(readDeathTexts());
@@ -383,20 +406,34 @@ public class DarwinAwards : BaseUnityPlugin
 	{
 		if (content == "" || webhookURL.Value == "")
 		{
+			MLLogger.LogWarning($"Cant post to discord, content:{content}; webhookURL: {webhookURL.Value}");
 			return;
 		}
 
-		WebRequest discordAPI = WebRequest.Create(webhookURL.Value);
-		discordAPI.Method = "POST";
-		discordAPI.ContentType = "application/json";
-
-		discordAPI.GetRequestStreamAsync().ContinueWith(t =>
+		try
 		{
-			static string escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+			WebRequest discordAPI = WebRequest.Create(webhookURL.Value);
+			discordAPI.Method = "POST";
+			discordAPI.ContentType = "application/json";
 
-			using StreamWriter writer = new(t.Result);
-			string json = @"{""content"":""" + escape(content) + @"""" + (webhookUsername.Value == "" ? "" : @", ""username"":""" + escape(webhookUsername.Value) + @"""") + "}";
-			writer.WriteAsync(json).ContinueWith(_ => discordAPI.GetResponseAsync());
-		});
+			discordAPI.GetRequestStreamAsync().ContinueWith(t =>
+			{
+				static string escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+				using StreamWriter writer = new(t.Result);
+				var json =
+					$@"{{""content"":""{escape(content)}""{(webhookUsername.Value == "" ? "" : $@", ""username"":""{escape(webhookUsername.Value)}""")}}}";
+				writer.WriteAsync(json).ContinueWith(_ => discordAPI.GetResponseAsync());
+				MLLogger.LogInfo($"Posted: {json}");
+			});
+		}
+		catch (Exception e)
+		{
+			MLLogger.LogError($"Cant post to discord");
+			MLLogger.LogError(e.Message);
+			MLLogger.LogError(e.StackTrace);
+			throw;
+		}
+		
 	}
 }
