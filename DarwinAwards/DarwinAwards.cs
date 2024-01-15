@@ -112,8 +112,8 @@ public class DarwinAwards : BaseUnityPlugin
 		font.SettingChanged += Display.UpdateFont;
 		fontSize = config("1 - General", "Font size of the death log", 14, new ConfigDescription("Font size to be used for your death log.", new AcceptableValueRange<int>(1, 32)), false);
 		fontSize.SettingChanged += Display.UpdateFont;
-		webhookURL = config("2 - Webhook", "Discord Webhook URL", "", new ConfigDescription("Discord API endpoint to announce deaths.", null, new ConfigurationManagerAttributes()));
-		webhookUsername = config("2 - Webhook", "Username to use for Discord", "Darwin", new ConfigDescription("Username to be used for death related posts to Discord.", null, new ConfigurationManagerAttributes()));
+		webhookURL = config("2 - Webhook", "Discord Webhook URL", "", new ConfigDescription("Discord API endpoint to announce deaths.", null, new ConfigurationManagerAttributes()), false);
+		webhookUsername = config("2 - Webhook", "Username to use for Discord", "Darwin", new ConfigDescription("Username to be used for death related posts to Discord.", null, new ConfigurationManagerAttributes()), false);
 
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
